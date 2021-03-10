@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'converter.dart';
+import 'historical.dart';
+import 'package:gson/gson.dart';
+
 
 void main() {
   runApp(Calc());
@@ -29,6 +34,27 @@ class _SimpleCalcState extends State<SimpleCalc> {
   String expression = "";
   double equationFontSize = 30.0;
   double resultFontSize = 40.0;
+  Map<String, dynamic> history = {};
+  List historyList2 = [];
+
+  setHistorical() async {
+    print("historical");
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    
+    List<String> loadedList = prefs.getStringList("history");
+    print("loaded list");
+    print(loadedList);
+    setState(() {
+      historyList2 = loadedList.map((item) => json.decode(item)).toList();
+    });
+
+    historyList2.add(history);
+    List<String> list = historyList2.map((item) => json.encode(item)).toList();
+    print("new history");
+    print(list);
+    prefs.setStringList("history", list);
+  }
 
   buttonPressed(String buttonText) {
     setState(() {
@@ -58,6 +84,11 @@ class _SimpleCalcState extends State<SimpleCalc> {
 
           ContextModel cm = ContextModel();
           result = '${exp.evaluate(EvaluationType.REAL, cm)}';
+          history = {
+            "equation": "$expression=$result",
+            "timestamp": DateTime.now().toString()
+          };
+          setHistory();
         } catch (e) {
           result = "Error";
         }
@@ -108,6 +139,17 @@ class _SimpleCalcState extends State<SimpleCalc> {
                   },
                   child: Text("Converter"),
                   color: Colors.blue ),
+            ),
+            Container(
+              child: RaisedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => History()),
+                    );
+                  },
+                  child: Text("Historical data"),
+                  color: Colors.red),
             ),
             Container(
               alignment: Alignment.centerRight,
